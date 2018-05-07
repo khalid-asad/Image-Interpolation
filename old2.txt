@@ -1,0 +1,76 @@
+function bicubic_int;
+M_inv = [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0; 0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0;-3,3,0,0,-2,-1,0,0,0,0,0,0,0,0,0,0; 2,-2,0,0,1,1,0,0,0,0,0,0,0,0,0,0; 0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0; 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0; 0,0,0,0,0,0,0,0,-3,3,0,0,-2,-1,0,0; 0,0,0,0,0,0,0,0,2,-2,0,0,1,1,0,0; -3,0,3,0,0,0,0,0,-2,0,-1,0,0,0,0,0; 0,0,0,0,-3,0,3,0,0,0,0,0,-2,0,-1,0; 9,-9,-9,9,6,3,-6,-3,6,-6,3,-3,4,2,2,1; -6,6,6,-6,-3,-3,3,3,-4,4,-2,2,-2,-2,-1,-1; 2,0,-2,0,0,0,0,0,1,0,1,0,0,0,0,0; 0,0,0,0,2,0,-2,0,0,0,0,0,1,0,1,0; -6,6,6,-6,-4,-2,4,2,-3,3,-3,3,-2,-1,-2,-1; 4,-4,-4,4,2,2,-2,-2,2,-2,2,-2,1,1,1,1 ];
+im = rgb2gray(imread('grumpycat.jpeg'));
+
+[r,c] = size(im);
+zoom = 2;
+r_new = r*zoom;
+c_new = c*zoom;
+r_scale = r_new./(r-1);
+c_scale = c_new./(c-1);
+
+img = zeros(r_new,c_new,1);
+x = zeros(r,c);
+y = zeros(r,c);
+z = zeros(r,c);
+for i=1:r
+    for j=1:c     
+        if((i==1)||(i==r)) 
+            x(i,j) = 0;
+        elseif ((j==1)||(j==c))
+            y(i,j) = im(i,j);
+        elseif ((i~=1)&&(i~=r))
+            x(i,j) = (im(i+1,j)-im(i-1,j))./2;
+        elseif ((j~=1)&&(j~=c))
+            y(i,j) = (im(i,j+1)-im(i,j-1))./2;
+        elseif ((i~=1)&&(i~=r)&&(j~=1)&&(j~=c))
+            z(i,j) = (im(i+1,j+1)-im(i-1,j)-im(i,j-1)+im(i,j))./4;
+        end
+    end
+end
+
+f=zeros(1,4);
+fx=zeros(1,4);
+fy=zeros(1,4);
+fxy=zeros(1,4);
+for i=1:r_new-1
+    for j=1:c_new-1
+        W = -(((i./r_scale)-floor(i./r_scale))-1);
+ 		H = -(((j./c_scale)-floor(j./c_scale))-1);
+		I11 = [1+floor(i/r_scale),1+floor(j/c_scale)];
+ 		I21 = [1+floor(i/r_scale),1+ceil(j/c_scale)];
+ 		I12 = [1+ceil(i/r_scale),1+floor(j/c_scale)];
+		I22 = [1+ceil(i/r_scale),1+ceil(j/c_scale)];
+		f(1) = im(I11(1),I11(2));
+		f(2) = im(I21(1),I21(2));
+		f(3) = im(I12(1),I12(2));
+		f(4) = im(I22(1),I22(2));
+		fx(1) = x(I11(1),I11(2));
+		fx(2) = x(I21(1),I21(2));
+		fx(3) = x(I12(1),I12(2));
+		fx(4) = x(I22(1),I22(2));
+		fy(1) = y(I11(1),I11(2));
+		fy(2) = y(I21(1),I21(2));
+		fy(3) = y(I12(1),I12(2));
+		fy(4) = y(I22(1),I22(2));
+		fxy(1) = z(I11(1),I11(2));
+		fxy(2) = z(I21(1),I21(2));
+		fxy(3) = z(I12(1),I12(2));
+		fxy(4) = z(I22(1),I22(2));
+    	alpha = (M_inv)*double([f(1); f(2); f(3); f(4); fx(1); fx(2); fx(3); fx(4); fy(1); fy(2); fy(3); fy(4); fxy(1); fxy(2); fxy(3); fxy(4)]);
+		temp_p=0;
+
+		for k = 1:16
+		 	w_temp = floor((k-1)/4);
+		 	h_temp = mod(k-1,4);
+	 		temp_p = temp_p + alpha(k).*((1-W)^(w_temp)).*((1-H)^(h_temp));
+		end
+		img(i+1,j+1,1)=temp_p;
+    end
+end
+
+im_zoom = mat2gray(img);
+imshow(im_zoom);
+end
+
+
